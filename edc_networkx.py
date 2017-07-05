@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 G = nx.Graph()
 
-with open("ALL_Tracklists_enriched.csv", 'rb') as infile:
+with open("ALL_Tracklists_enriched_clustered.csv", 'rb') as infile:
 	reader = csv.reader(infile)
 	headers = reader.next()
 	for header in headers:
@@ -23,9 +23,11 @@ with open("ALL_Tracklists_enriched.csv", 'rb') as infile:
 
 	set_artists = []
 	track_basics = []
+	artist_clusters = {}
 
 	for row in reader:
-		set_artist = row[2]
+		set_artist = row[0]
+		artist_clusters[set_artist] = row[8]
 		if set_artist not in set_artists:
 			set_artists.append(set_artist)
 		
@@ -39,7 +41,7 @@ with open("ALL_Tracklists_enriched.csv", 'rb') as infile:
 		else:
 			c_type = "played"
 		G.add_edge(set_artist, track_basic, connection_type=c_type, 
-				   track_info=set_artist+": "+row[1])
+				   track_info=set_artist+": "+row[2])
 
 		edges = []
 		og_edge = (set_artist, track_basic)
@@ -53,16 +55,19 @@ with open("ALL_Tracklists_enriched.csv", 'rb') as infile:
 		
 		for e in edges:
 			G.add_edge(e[0], e[1], connection_type="created",
-					   track_info=set_artist+": "+row[1])
+					   track_info=set_artist+": "+row[2])
 
 #add attributes to nodes
 for n in G:
 	if n in set_artists:
 		G.node[n]['type'] = "set_artist"
+		G.node[n]['cluster'] = artist_clusters[n]
 	elif n in track_basics:
 		G.node[n]['type'] = "track_basic"
+		G.node[n]['cluster'] = -1
 	else:
 		G.node[n]['type'] = "artist"
+		G.node[n]['cluster'] = -1
 
 fig1 = plt.figure(figsize=(10,10))
 fig1.add_subplot(111)
@@ -83,7 +88,8 @@ with open("EDC_Network.csv", "wb") as outfile:
 					 'connection',
 					 'connection_type',
 					 'track_info',
-					 'node_type'])
+					 'node_type',
+					 'cluster'])
 	for e in G.edges_iter():
 		path_order = 1
 		for n in e:
@@ -94,7 +100,8 @@ with open("EDC_Network.csv", "wb") as outfile:
 					e[0] + ' - ' + e[1],
 					G[e[0]][e[1]]['connection_type'],
 					G[e[0]][e[1]]['track_info'],
-					G.node[n]['type']])
+					G.node[n]['type'],
+					G.node[n]['cluster']])
 			writer.writerow(row)
 			path_order += 1
 
