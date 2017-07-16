@@ -27,7 +27,7 @@ with open("ALL_Tracklists_enriched_clustered.csv", 'rb') as infile:
 
 	for row in reader:
 		set_artist = row[0]
-		artist_clusters[set_artist] = row[8]
+		artist_clusters[set_artist] = row[9]
 		if set_artist not in set_artists:
 			set_artists.append(set_artist)
 		
