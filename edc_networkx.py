@@ -40,8 +40,10 @@ with open("ALL_Tracklists_enriched_clustered.csv", 'rb') as infile:
 			c_type = "created & played"
 		else:
 			c_type = "played"
-		G.add_edge(set_artist, track_basic, connection_type=c_type, 
-				   track_info=set_artist+": "+row[2])
+		G.add_edge(set_artist, track_basic, 
+				   connection_type=c_type, 
+				   track_info=set_artist+": "+row[2],
+				   connection_cluster=row[9])
 
 		edges = []
 		og_edge = (set_artist, track_basic)
@@ -54,20 +56,22 @@ with open("ALL_Tracklists_enriched_clustered.csv", 'rb') as infile:
 				edges.append((artist, track_basic))
 		
 		for e in edges:
-			G.add_edge(e[0], e[1], connection_type="created",
-					   track_info=set_artist+": "+row[2])
+			G.add_edge(e[0], e[1], 
+					   connection_type="created",
+					   track_info=set_artist+": "+row[2],
+					   connection_cluster=-1)
 
 #add attributes to nodes
 for n in G:
 	if n in set_artists:
 		G.node[n]['type'] = "set_artist"
-		G.node[n]['cluster'] = artist_clusters[n]
+		#G.node[n]['cluster'] = artist_clusters[n]
 	elif n in track_basics:
 		G.node[n]['type'] = "track_basic"
-		G.node[n]['cluster'] = -1
+		#G.node[n]['cluster'] = -1
 	else:
 		G.node[n]['type'] = "artist"
-		G.node[n]['cluster'] = -1
+		#G.node[n]['cluster'] = -1
 
 fig1 = plt.figure(figsize=(10,10))
 fig1.add_subplot(111)
@@ -101,7 +105,7 @@ with open("EDC_Network.csv", "wb") as outfile:
 					G[e[0]][e[1]]['connection_type'],
 					G[e[0]][e[1]]['track_info'],
 					G.node[n]['type'],
-					G.node[n]['cluster']])
+					G[e[0]][e[1]]['connection_cluster']])
 			writer.writerow(row)
 			path_order += 1
 
