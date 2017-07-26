@@ -8,12 +8,8 @@ import re
 import time
 import random
 
-#important for scraping to work
-ua = UserAgent()
-headers = {'User-Agent': str(ua.random)}
 
-
-def scrape_tracklist(link, headers, artist):
+def scrape_tracklist(link, headers, artist, stage):
 	"""scrape the tracklists info and write to csv"""
 	tracklist = []
 	time.sleep(random.randint(0, 5)) #occasionally pause for a few seconds
@@ -30,7 +26,7 @@ def scrape_tracklist(link, headers, artist):
 				content = track.meta['content']
 				pp.pprint(content)
 				content = re.sub(r'[^\x00-\x7F]+', '*', content) 	#replace unicode characters
-				writer.writerow([content])
+				writer.writerow([content, stage])
 				tracklist.append(content)
 			except TypeError:
 				content = None
@@ -66,20 +62,25 @@ def scrape_links(search_url, headers, all_artists):
 			print artist
 			print
 
-			scrape_tracklist(link, headers, artist)
+			scrape_tracklist(link, headers, artist, stage)
 
 	return all_artists
+
 
 def main():
 	all_artists = []
 
-	for i in range(4,5):
+	for i in range(1, 5):
 		if i == 1:
 			search_url = "https://www.1001tracklists.com/source/fgcfkm/tomorrowland/index.html"
 		else:
 			search_url = "https://www.1001tracklists.com/source/fgcfkm/tomorrowland/index" + \
 						  str(i) + ".html"
 		time.sleep(random.randint(5, 15)) #occasionally pause for a few seconds
+
+		ua = UserAgent()
+		headers = {'User-Agent': str(ua.random)}
+
 		all_artists = scrape_links(search_url, headers, all_artists) 
 
 
