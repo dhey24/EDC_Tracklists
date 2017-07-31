@@ -35,9 +35,15 @@ def cluster_df(df, n_clusters=2, artist_cutoff=6, track_cutoff=5):
 	print df_piv.shape
 
 	#join tracks and artists features
-	df_m=df_piv.merge(df_artist_piv, how='left', left_index=True, right_index=True)
+	if track_cutoff >= 0:
+		df_m=df_piv.merge(df_artist_piv, how='left', left_index=True, right_index=True)
+	else: 
+		df_m = df_artist_piv
 	#drop ID columns
-	del df_m['ID']
+	try:
+		del df_m['ID']
+	except KeyError:
+		print "No ID column..."
 
 	#create clusters
 	n_clusters = 2
@@ -84,17 +90,16 @@ def cluster_df(df, n_clusters=2, artist_cutoff=6, track_cutoff=5):
 
 def main():
 	#df = pd.read_csv("../ALL_Tracklists_enriched.csv")
-	artist_cutoff=6
-	track_cutoff=5
+	artist_cutoff=9
+	track_cutoff=6
 	df = pd.read_csv("./ALL_Tracklists_enriched_remixrows.csv")
 
 	c = 0
 	c_maxval = 11
-	while c_maxval > 10 and track_cutoff >= 1:
+	while c_maxval > 10 and artist_cutoff > 0:
 		df_merged, c_idxmax, c_maxval = cluster_df(df, 
 							    				   artist_cutoff=artist_cutoff, 
 							    				   track_cutoff=track_cutoff)
-		
 		
 		#add the smaller clusters to the final df
 		df_toadd = df_merged[df_merged['cluster'] != c_idxmax]
@@ -125,7 +130,7 @@ def main():
 	print df_final.shape
 
 	print df_final.groupby('cluster').size()
-	
+
 	df_final.to_csv("ALL_Tracklists_enriched_clustered.csv")
 
 

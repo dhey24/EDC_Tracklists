@@ -27,11 +27,11 @@ with open("ALL_Tracklists_enriched_clustered.csv", 'rb') as infile:
 
 	for row in reader:
 		set_artist = row[0]
-		artist_clusters[set_artist] = row[9]
+		artist_clusters[set_artist] = row[8]
 		if set_artist not in set_artists:
 			set_artists.append(set_artist)
 		
-		track_basic = row[6]
+		track_basic = row[4]
 		if track_basic not in track_basics:
 			track_basics.append(track_basic)
 
@@ -42,8 +42,8 @@ with open("ALL_Tracklists_enriched_clustered.csv", 'rb') as infile:
 			c_type = "played"
 		G.add_edge(set_artist, track_basic, 
 				   connection_type=c_type, 
-				   track_info=set_artist+": "+row[2],
-				   connection_cluster=row[9])
+				   track_info=set_artist+": "+row[1],
+				   connection_cluster=row[8])
 
 		edges = []
 		og_edge = (set_artist, track_basic)
@@ -58,7 +58,7 @@ with open("ALL_Tracklists_enriched_clustered.csv", 'rb') as infile:
 		for e in edges:
 			G.add_edge(e[0], e[1], 
 					   connection_type="created",
-					   track_info=set_artist+": "+row[2],
+					   track_info=set_artist+": "+row[1],
 					   connection_cluster=-1)
 
 #add attributes to nodes
