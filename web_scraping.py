@@ -7,6 +7,7 @@ import csv
 import re
 import time
 import random
+import pandas as pd
 
 
 def scrape_tracklist(link, headers, artist, stage):
@@ -18,14 +19,15 @@ def scrape_tracklist(link, headers, artist, stage):
 	soup = BeautifulSoup(page.content, "lxml")
 	tracks = soup.find_all("div", class_="tlToogleData")
 
-	with open(artist + ".csv", 'wb') as outfile:
+	with open(artist + "_TLwk2.csv", 'wb') as outfile:
 		writer = csv.writer(outfile)
 
 		for track in tracks:
 			try:
 				content = track.meta['content']
 				pp.pprint(content)
-				content = re.sub(r'[^\x00-\x7F]+', '*', content) 	#replace unicode characters
+				#replace unicode characters
+				content = re.sub(r'[^\x00-\x7F]+', '*', content) 	
 				writer.writerow([content, stage])
 				tracklist.append(content)
 			except TypeError:
@@ -35,7 +37,8 @@ def scrape_tracklist(link, headers, artist, stage):
 	return tracklist
 
 
-def scrape_links(search_url, headers, all_artists):
+def scrape_links(search_url, headers, all_artists, artist_meta, 
+				 scrape_tracks=True):
 	"""1. get all the tracklist URLs on a given page
 	   2. navigate to those URLs and scrape the tracklists
 	   3. write to csv"""
@@ -44,33 +47,40 @@ def scrape_links(search_url, headers, all_artists):
 	soup = BeautifulSoup(page.content, "lxml")
 	pages = soup.find_all("div", class_="tlLink")
 
-	tracklists = {}
+	if len(pages) == 0:
+		print "\nWE GOT BLOCKED?!?!\n"
 
 	for page in pages:
 		link = 'https://www.1001tracklists.com' + page.a['href']
 		description = page.a.get_text()
-		description = description.split(" @ ")
-		artist = description.pop(0)
-		description = description[0].split(", ")
-		stage = description.pop(0)
-		#only scrape tracklists if it has not been pulled already
-		if artist not in all_artists:
-			tracklists[artist] = {'stage': stage, 'url': link}
-			all_artists.append(artist)
+		if "Tomorrowland Weekend " in description:
+			description = description.split(" @ ")
+			artist = description.pop(0)
+			description = description[0].split(", ")
+			stage = description.pop(0)
+			weekend = description.pop(0)
+			#only scrape tracklists if it has not been pulled already
+			if artist not in all_artists:
+				artist = re.sub(r'[^\x00-\x7F]+', '*', artist)
+				artist_meta.append({'artist': artist, 
+									'stage': stage, 
+									'url': link,
+									'weekend': weekend})
+				all_artists.append(artist)
 
-			print
-			print artist
-			print
+				print "\n" + artist, weekend + "\n"
 
-			scrape_tracklist(link, headers, artist, stage)
+				if scrape_tracks:
+					scrape_tracklist(link, headers, artist, stage)
 
-	return all_artists
+	return all_artists, artist_meta
 
 
 def main():
 	all_artists = []
+	artist_meta = []
 
-	for i in range(1, 5):
+	for i in range(1, 6):
 		if i == 1:
 			search_url = "https://www.1001tracklists.com/source/fgcfkm/tomorrowland/index.html"
 		else:
@@ -81,8 +91,15 @@ def main():
 		ua = UserAgent()
 		headers = {'User-Agent': str(ua.random)}
 
-		all_artists = scrape_links(search_url, headers, all_artists) 
+		all_artists, artist_meta = scrape_links(search_url, 
+												headers, 
+												all_artists, 
+												artist_meta,
+												scrape_tracks=True)
 
+	#write artist reference metadata to seperate csv
+	df = pd.DataFrame.from_dict(artist_meta)
+	df.to_csv('Tomorrowland_wk2_artist_meta.csv')
 
 if __name__ == '__main__':
 	main()

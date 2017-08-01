@@ -14,7 +14,7 @@ with open("ALL_tracklists.csv", 'wb') as outfile:
 	writer = csv.writer(outfile)
 	writer.writerow(header)
 	for path in path_list:
-		artist = path.split('/')[-1].split('.')[0]
+		artist = path.split('/')[-1].split('_TLwk2.')[0] #Note the wk2 tag
 		with open(path, 'rb') as infile:
 			reader = csv.reader(infile)
 			for row in reader:
