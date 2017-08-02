@@ -4,6 +4,19 @@ import numpy as np
 from sklearn.cluster import KMeans
 import re
 
+def decrement_cutoff(df, cutoff):
+	name = df.name
+	print "\n" + str(name) + ", Cutoff = " + str(cutoff)
+	print str(name) + " shape before:"
+	print df.shape
+	df[df > 0] = 1
+	df = df.loc[:, (df.sum() > cutoff)]
+	print str(name) + " shape after:"
+	print df.shape
+	df.name = name
+
+	return df
+
 
 def cluster_df(df, n_clusters=2, artist_cutoff=6, track_cutoff=5):
 	#counts of artists played per set
@@ -11,14 +24,16 @@ def cluster_df(df, n_clusters=2, artist_cutoff=6, track_cutoff=5):
 								   index=['artist'],
 								   aggfunc=lambda x:x.value_counts().count(), 
 								   fill_value=0)
-	#feature reduction... no artists that were not played by less than 4 artists
-	print "\n Artists, Cutoff = " + str(artist_cutoff)
-	print "Artists shape before:"
-	print df_artist_piv.shape
-	df_artist_piv[df_artist_piv > 0] = 1
-	df_artist_piv = df_artist_piv.loc[:, (df_artist_piv.sum() > artist_cutoff)]
-	print "Artists shape after:"
-	print df_artist_piv.shape
+	#feature reduction... no tracks that were not played by less than 4 artists
+	df_artist_piv.name = "Artist"
+	num_cols = 0
+	while num_cols == 0 and artist_cutoff >= 1:
+		df_artist_piv_new = decrement_cutoff(df_artist_piv, artist_cutoff)
+		num_cols = len(df_artist_piv_new.columns)
+		if num_cols == 0:
+			artist_cutoff += -1
+		else:
+			df_artist_piv = df_artist_piv_new
 
 	#counts of songs played per set
 	df_piv = df.pivot_table(values='track', columns='track_basic',
@@ -26,13 +41,15 @@ def cluster_df(df, n_clusters=2, artist_cutoff=6, track_cutoff=5):
 						    aggfunc=lambda x:x.value_counts().count(), 
 						    fill_value=0)
 	#feature reduction... no tracks that were not played by less than 4 artists
-	print "\n Tracks, Cutoff = " + str(track_cutoff)
-	print "Tracks shape before:"
-	print df_piv.shape
-	df_piv[df_piv > 0] = 1
-	df_piv = df_piv.loc[:, (df_piv.sum() > track_cutoff)]
-	print "Tracks shape after:"
-	print df_piv.shape
+	df_piv.name = "Track"
+	num_cols = 0
+	while num_cols == 0 and track_cutoff >= 0:
+		df_piv_new = decrement_cutoff(df_piv, track_cutoff)
+		num_cols = len(df_piv_new.columns)
+		if num_cols == 0:
+			track_cutoff += -1
+		else:
+			df_piv = df_piv_new
 
 	#join tracks and artists features
 	if track_cutoff >= 0:
@@ -45,15 +62,20 @@ def cluster_df(df, n_clusters=2, artist_cutoff=6, track_cutoff=5):
 	except KeyError:
 		print "No ID column..."
 
+	#do not want to cluster on less than 4 columns
+	if len(df_m.columns) < 6:
+		raise ValueError
+
 	#create clusters
-	n_clusters = 2
-	kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init=1).fit(df_m)
+	n_clusters = max(2, int((len(df_m.index.unique())/3)**(1/2.0)))
+	#n_clusters = max(2, int((len(df_m.columns)/2)**(1/2.0)))
+	kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init=100).fit(df_m)
 	df_m['cluster'] = kmeans.labels_
 	#print df_m['cluster']
 	for cluster in range(n_clusters):
 		print "\nCluster " + str(cluster) + ":"
 		print df_m[df_m['cluster'] == cluster].index.unique()
-
+ 
 	#label clusters
 	terms = df_m.columns.values
 	order_centroids = kmeans.cluster_centers_.argsort()[:,::-1]
@@ -85,36 +107,51 @@ def cluster_df(df, n_clusters=2, artist_cutoff=6, track_cutoff=5):
 	cols = np.append(cols, 'cluster')
 	df_merged = df_merged[cols]
 
-	return df_merged, c_idxmax, c_maxval
+	return df_merged, c_idxmax, c_maxval, artist_cutoff, track_cutoff
 
 
 def main():
 	#df = pd.read_csv("../ALL_Tracklists_enriched.csv")
-	artist_cutoff=9
-	track_cutoff=6
+	artist_cutoff=14
+	track_cutoff=10
 	df = pd.read_csv("./ALL_Tracklists_enriched_remixrows.csv")
 
 	c = 0
 	c_maxval = 11
+	df_final = None
 	while c_maxval > 10 and artist_cutoff > 0:
-		df_merged, c_idxmax, c_maxval = cluster_df(df, 
-							    				   artist_cutoff=artist_cutoff, 
-							    				   track_cutoff=track_cutoff)
-		
-		#add the smaller clusters to the final df
-		df_toadd = df_merged[df_merged['cluster'] != c_idxmax]
-		if c == 0:
-			df_toadd['cluster'] = c
-			df_final = df_toadd
-		else:
-			df_toadd['cluster'] = c
-			df_final = pd.concat([df_final, df_toadd])
+		try:
+			df_merged, c_idxmax, c_maxval, artist_cutoff, track_cutoff =  \
+					cluster_df(df, 
+		    				   artist_cutoff=artist_cutoff, 
+		    				   track_cutoff=track_cutoff)
+			#add the smaller clusters to the final df
+			df_toadd = df_merged[df_merged['cluster'] != c_idxmax]
+			remaining_clusters = df_toadd.cluster.unique()
+			toss_back = [c_idxmax]
+			min_size = 5
+			#number final clusters correctly
+			for i in remaining_clusters:
+				if len(df_toadd[df_toadd['cluster'] == i].index.unique()) >= min_size or artist_cutoff == 1:
+					df_toadd['cluster'][df_toadd['cluster'] == i] = c
+					c += 1
+				else:
+					toss_back.append(i)
+					df_toadd = df_toadd[df_toadd['cluster'] != i]
+					print "Tossing back %s" % (str(i))
+			#add to final df
+			if df_final is None:
+				df_final = df_toadd
+			else:
+				df_final = pd.concat([df_final, df_toadd])
 
-		c += 1
+		except ValueError:
+			print "EXCEPTION: NOT ENOUGH FEATURES AT THIS LEVEL"
+
 		artist_cutoff += -1
 		track_cutoff += -1
 		df = df_merged.reset_index()
-		df = df[df['cluster'] == c_idxmax]
+		df = df[df['cluster'].isin(toss_back)]
 		del df['cluster']
 
 	#add the last cluster
@@ -129,7 +166,10 @@ def main():
 	print "shape after:"
 	print df_final.shape
 
-	print df_final.groupby('cluster').size()
+	#print df_final.groupby('cluster', group_keys=True).size()
+	for cluster in df_final.cluster.unique():
+		print "\nCluster " + str(cluster) + ":"
+		print df_final[df_final['cluster'] == cluster].index.unique()
 
 	df_final.to_csv("ALL_Tracklists_enriched_clustered.csv")
 

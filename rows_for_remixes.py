@@ -5,7 +5,7 @@ import re
 
 #create the base columns for the dataframe
 df = pd.read_csv("./TomorrowlandCSVs/ALL_tracklists.csv")
-df.columns = ['track_info','artist', '_stage', '_weekend']
+df.columns = ['track_info','artist', 'stage', 'weekend']
 df['track'] = df['track_info'].apply(lambda x: x.split(' - ')[1])
 df['track_artist'] = df['track_info'].apply(lambda x: x.split(' - ')[0])
 df['track_basic'] = df['track'].apply(lambda x: x.split(' (')[0])
