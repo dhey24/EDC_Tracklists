@@ -4,8 +4,8 @@ import re
 
 
 #create the base columns for the dataframe
-df = pd.read_csv("./TomorrowlandCSVs/ALL_tracklists.csv")
-df.columns = ['track_info','artist', 'stage', 'weekend']
+df = pd.read_csv("./ALL_tracklists_UMF18.csv")
+df.columns = ['track_info','stage', 'artist']
 df['track'] = df['track_info'].apply(lambda x: x.split(' - ')[1])
 df['track_artist'] = df['track_info'].apply(lambda x: x.split(' - ')[0])
 df['track_basic'] = df['track'].apply(lambda x: x.split(' (')[0])
@@ -22,7 +22,7 @@ for header in headers:
 	print headers.index(header), header
 
 #create csv with a row for each artist involved in the song
-with open("ALL_Tracklists_enriched_remixrows.csv", "wb") as outfile:
+with open("ALL_Tracklists_enriched_remixrows_UMF18.csv", "wb") as outfile:
 	writer = csv.writer(outfile)
 	writer.writerow(headers)
 

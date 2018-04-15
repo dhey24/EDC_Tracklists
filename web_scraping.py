@@ -19,7 +19,7 @@ def scrape_tracklist(link, headers, artist, stage):
 	soup = BeautifulSoup(page.content, "lxml")
 	tracks = soup.find_all("div", class_="tlToogleData")
 
-	with open(artist + "_TLwk2.csv", 'wb') as outfile:
+	with open("./Ultra18CSVs/" + artist + "_UMF18.csv", 'wb') as outfile:
 		writer = csv.writer(outfile)
 
 		for track in tracks:
@@ -53,7 +53,7 @@ def scrape_links(search_url, headers, all_artists, artist_meta,
 	for page in pages:
 		link = 'https://www.1001tracklists.com' + page.a['href']
 		description = page.a.get_text()
-		if "Tomorrowland Weekend " in description:
+		if "Ultra Music Festival" in description:
 			description = description.split(" @ ")
 			artist = description.pop(0)
 			description = description[0].split(", ")
@@ -80,11 +80,11 @@ def main():
 	all_artists = []
 	artist_meta = []
 
-	for i in range(1, 6):
+	for i in range(1, 5):
 		if i == 1:
-			search_url = "https://www.1001tracklists.com/source/fgcfkm/tomorrowland/index.html"
+			search_url = "https://www.1001tracklists.com/source/cchmxc/ultra-music-festival-miami/index.html"
 		else:
-			search_url = "https://www.1001tracklists.com/source/fgcfkm/tomorrowland/index" + \
+			search_url = "https://www.1001tracklists.com/source/cchmxc/ultra-music-festival-miami/index" + \
 						  str(i) + ".html"
 		time.sleep(random.randint(5, 15)) #occasionally pause for a few seconds
 
@@ -99,7 +99,7 @@ def main():
 
 	#write artist reference metadata to seperate csv
 	df = pd.DataFrame.from_dict(artist_meta)
-	df.to_csv('Tomorrowland_wk2_artist_meta.csv')
+	df.to_csv('Ultra_Miami_2018_artist_meta.csv')
 
 if __name__ == '__main__':
 	main()

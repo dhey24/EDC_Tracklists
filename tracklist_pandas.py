@@ -82,7 +82,7 @@ def cluster_df(df, n_clusters=2, artist_cutoff=6, track_cutoff=5):
 	df_m['label'] = "None"
 	for i in range(n_clusters):
 		label = None
-		for ind in order_centroids[i, :5]:
+		for ind in order_centroids[i, :10]:
 			if label is None:
 				label = terms[ind]
 			else:
@@ -114,7 +114,7 @@ def main():
 	#df = pd.read_csv("../ALL_Tracklists_enriched.csv")
 	artist_cutoff=14
 	track_cutoff=10
-	df = pd.read_csv("./ALL_Tracklists_enriched_remixrows.csv")
+	df = pd.read_csv("./ALL_Tracklists_enriched_remixrows_UMF18.csv")
 
 	c = 0
 	c_maxval = 11
